@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Commerce Data Extractor Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-shadow {
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-success { background-color: #10b981; }
+        .status-warning { background-color: #f59e0b; }
+        .status-error { background-color: #ef4444; }
+        .status-processing { 
+            background-color: #3b82f6; 
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="gradient-bg text-white py-6">
+        <div class="container mx-auto px-4">
+            <h1 class="text-3xl font-bold">🕷️ E-Commerce Data Extractor Pro</h1>
+            <p class="text-blue-100 mt-2">Advanced web scraping tool for product data extraction</p>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Configuration Panel -->
+        <div class="bg-white rounded-lg card-shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">🔧 Scraping Configuration</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Target Website</label>
+                    <select id="websiteSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        <option value="amazon">Amazon (Demo)</option>
+                        <option value="ebay">eBay (Demo)</option>
+                        <option value="etsy">Etsy (Demo)</option>
+                        <option value="custom">Custom URL</option>
+                    </select>
+                    <input type="url" id="customUrl" placeholder="Enter custom URL" class="w-full px-3 py-2 border border-gray-300 rounded-md mt-2 hidden">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Product Category</label>
+                    <select id="categorySelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        <option value="electronics">Electronics</option>
+                        <option value="clothing">Clothing & Fashion</option>
+                        <option value="home">Home & Garden</option>
+                        <option value="books">Books</option>
+                        <option value="sports">Sports & Outdoors</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Max Products</label>
+                    <input type="number" id="maxProducts" value="50" min="1" max="1000" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Delay (seconds)</label>
+                    <input type="number" id="delay" value="2" min="1" max="10" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Output Format</label>
+                    <select id="outputFormat" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="csv">CSV</option>
+                        <option value="json">JSON</option>
+                        <option value="xlsx">Excel (XLSX)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-6 flex gap-4">
+                <button onclick="startExtraction()" id="startBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    🚀 Start Extraction
+                </button>
+                <button onclick="stopExtraction()" id="stopBtn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors hidden">
+                    ⏹️ Stop Extraction
+                </button>
+                <button onclick="resetExtraction()" id="resetBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    🔄 Reset
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Panel -->
+        <div id="progressPanel" class="bg-white rounded-lg card-shadow p-6 mb-6 hidden">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">📊 Extraction Progress</h2>
+            
+            <div class="mb-4">
+                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Overall Progress</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="progressBar" class="bg-blue-600 h-2 rounded-full progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600" id="pagesScraped">0</div>
+                    <div class="text-sm text-gray-600">Pages Scraped</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600" id="productsFound">0</div>
+                    <div class="text-sm text-gray-600">Products Found</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-yellow-600" id="errorsCount">0</div>
+                    <div class="text-sm text-gray-600">Errors</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-purple-600" id="timeElapsed">00:00</div>
+                    <div class="text-sm text-gray-600">Time Elapsed</div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h3 class="font-semibold text-gray-800 mb-2">Current Status</h3>
+                <div id="statusLog" class="space-y-1 max-h-32 overflow-y-auto text-sm">
+                    <!-- Status messages will appear here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div id="resultsPanel" class="bg-white rounded-lg card-shadow p-6 hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">📋 Extracted Data</h2>
+                <div class="flex gap-2">
+                    <button onclick="exportData()" id="exportBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                        💾 Export Data
+                    </button>
+                    <button onclick="previewData()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                        👁️ Preview
+                    </button>
+                </div>
+            </div>
+
+            <!-- Data Preview Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse border border-gray-300">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="border border-gray-300 px-3 py-2 text-left text-xs font-semibold uppercase">Product Name</th>
+                            <th class="border border-gray-300 px-3 py-2 text-left text-xs font-semibold uppercase">Price</th>
+                            <th class="border border-gray-300 px-3 py-2 text-left text-xs font-semibold uppercase">Rating</th>
+                            <th class="border border-gray-300 px-3 py-2 text-left text-xs font-semibold uppercase">Reviews</th>
+                            <th class="border border-gray-300 px-3 py-2 text-left text-xs font-semibold uppercase">Availability</th>
+                            <th class="border border-gray-300 px-3 py-2 text-left text-xs font-semibold uppercase">URL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable">
+                        <!-- Data rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Technical Info -->
+        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mt-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <span class="text-blue-400 text-xl">ℹ️</span>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">Real Implementation Requirements</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <p>For actual web scraping, you would need:</p>
+                        <ul class="list-disc list-inside mt-1 space-y-1">
+                            <li><strong>Backend Server:</strong> Python (BeautifulSoup, Scrapy), Node.js (Puppeteer, Cheerio)</li>
+                            <li><strong>Browser Automation:</strong> Selenium, Playwright for JavaScript-heavy sites</li>
+                            <li><strong>Proxy Management:</strong> Rotating proxies to avoid IP blocking</li>
+                            <li><strong>Rate Limiting:</strong> Respectful delays between requests</li>
+                            <li><strong>Legal Compliance:</strong> Check robots.txt and terms of service</li>
+                            <li><strong>Data Storage:</strong> Database (MongoDB, PostgreSQL) for large datasets</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let extractionActive = false;
+        let extractionInterval;
+        let startTime;
+        let extractedData = [];
+
+        // Sample data for different categories
+        const sampleData = {
+            electronics: [
+                { name: "iPhone 15 Pro Max", price: 1199.99, rating: 4.8, reviews: 2847, availability: "In Stock", url: "https://example.com/iphone15" },
+                { name: "Samsung Galaxy S24 Ultra", price: 1299.99, rating: 4.7, reviews: 1923, availability: "In Stock", url: "https://example.com/galaxy-s24" },
+                { name: "MacBook Pro 16-inch", price: 2499.99, rating: 4.9, reviews: 1456, availability: "Limited Stock", url: "https://example.com/macbook-pro" },
+                { name: "Sony WH-1000XM5 Headphones", price: 399.99, rating: 4.6, reviews: 3421, availability: "In Stock", url: "https://example.com/sony-headphones" },
+                { name: "iPad Pro 12.9-inch", price: 1099.99, rating: 4.8, reviews: 987, availability: "In Stock", url: "https://example.com/ipad-pro" }
+            ],
+            clothing: [
+                { name: "Nike Air Max 270", price: 150.00, rating: 4.5, reviews: 2156, availability: "In Stock", url: "https://example.com/nike-air-max" },
+                { name: "Levi's 501 Original Jeans", price: 89.99, rating: 4.4, reviews: 1834, availability: "In Stock", url: "https://example.com/levis-501" },
+                { name: "Adidas Ultraboost 22", price: 180.00, rating: 4.6, reviews: 1567, availability: "Limited Stock", url: "https://example.com/adidas-ultraboost" },
+                { name: "Champion Reverse Weave Hoodie", price: 65.00, rating: 4.3, reviews: 892, availability: "In Stock", url: "https://example.com/champion-hoodie" }
+            ],
+            home: [
+                { name: "Dyson V15 Detect Vacuum", price: 749.99, rating: 4.7, reviews: 1234, availability: "In Stock", url: "https://example.com/dyson-v15" },
+                { name: "Instant Pot Duo 7-in-1", price: 99.99, rating: 4.8, reviews: 4567, availability: "In Stock", url: "https://example.com/instant-pot" },
+                { name: "Philips Hue Smart Bulbs", price: 49.99, rating: 4.5, reviews: 2890, availability: "In Stock", url: "https://example.com/philips-hue" }
+            ]
+        };
+
+        document.getElementById('websiteSelect').addEventListener('change', function() {
+            const customUrl = document.getElementById('customUrl');
+            if (this.value === 'custom') {
+                customUrl.classList.remove('hidden');
+            } else {
+                customUrl.classList.add('hidden');
+            }
+        });
+
+        function startExtraction() {
+            if (extractionActive) return;
+            
+            extractionActive = true;
+            startTime = Date.now();
+            extractedData = [];
+            
+            // Update UI
+            document.getElementById('startBtn').classList.add('hidden');
+            document.getElementById('stopBtn').classList.remove('hidden');
+            document.getElementById('progressPanel').classList.remove('hidden');
+            document.getElementById('resultsPanel').classList.add('hidden');
+            
+            // Reset counters
+            updateProgress(0);
+            updateCounters(0, 0, 0);
+            
+            // Start simulation
+            simulateExtraction();
+        }
+
+        function stopExtraction() {
+            extractionActive = false;
+            clearInterval(extractionInterval);
+            
+            document.getElementById('startBtn').classList.remove('hidden');
+            document.getElementById('stopBtn').classList.add('hidden');
+            
+            addStatusMessage('Extraction stopped by user', 'warning');
+        }
+
+        function resetExtraction() {
+            stopExtraction();
+            
+            document.getElementById('progressPanel').classList.add('hidden');
+            document.getElementById('resultsPanel').classList.add('hidden');
+            
+            updateProgress(0);
+            updateCounters(0, 0, 0);
+            document.getElementById('statusLog').innerHTML = '';
+            document.getElementById('dataTable').innerHTML = '';
+            extractedData = [];
+        }
+
+        function simulateExtraction() {
+            const category = document.getElementById('categorySelect').value;
+            const maxProducts = parseInt(document.getElementById('maxProducts').value);
+            const delay = parseInt(document.getElementById('delay').value) * 1000;
+            
+            const categoryData = sampleData[category] || sampleData.electronics;
+            let currentProduct = 0;
+            let pagesScraped = 0;
+            let errors = 0;
+            
+            addStatusMessage('Starting extraction process...', 'processing');
+            addStatusMessage(`Target: ${maxProducts} products from ${category} category`, 'success');
+            
+            extractionInterval = setInterval(() => {
+                if (!extractionActive || currentProduct >= maxProducts) {
+                    if (currentProduct >= maxProducts) {
+                        completeExtraction();
+                    }
+                    return;
+                }
+                
+                // Simulate page scraping
+                if (currentProduct % 10 === 0) {
+                    pagesScraped++;
+                    addStatusMessage(`Scraping page ${pagesScraped}...`, 'processing');
+                }
+                
+                // Simulate occasional errors
+                if (Math.random() < 0.1) {
+                    errors++;
+                    addStatusMessage(`Error: Rate limit detected, retrying...`, 'error');
+                    updateCounters(pagesScraped, currentProduct, errors);
+                    return;
+                }
+                
+                // Add product data
+                const productIndex = currentProduct % categoryData.length;
+                const product = { ...categoryData[productIndex] };
+                product.name += ` #${currentProduct + 1}`;
+                product.price += Math.random() * 50 - 25; // Add some variation
+                product.rating = Math.max(3.0, Math.min(5.0, product.rating + (Math.random() - 0.5) * 0.4));
+                
+                extractedData.push(product);
+                currentProduct++;
+                
+                // Update progress
+                const progress = (currentProduct / maxProducts) * 100;
+                updateProgress(progress);
+                updateCounters(pagesScraped, currentProduct, errors);
+                
+                if (currentProduct % 5 === 0) {
+                    addStatusMessage(`Extracted ${currentProduct} products...`, 'success');
+                }
+                
+            }, delay / 5); // Faster simulation
+        }
+
+        function completeExtraction() {
+            extractionActive = false;
+            clearInterval(extractionInterval);
+            
+            document.getElementById('startBtn').classList.remove('hidden');
+            document.getElementById('stopBtn').classList.add('hidden');
+            
+            addStatusMessage('Extraction completed successfully!', 'success');
+            addStatusMessage(`Total products extracted: ${extractedData.length}`, 'success');
+            
+            displayResults();
+        }
+
+        function displayResults() {
+            document.getElementById('resultsPanel').classList.remove('hidden');
+            
+            const tableBody = document.getElementById('dataTable');
+            tableBody.innerHTML = '';
+            
+            extractedData.slice(0, 10).forEach(product => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="border border-gray-300 px-3 py-2">${product.name}</td>
+                    <td class="border border-gray-300 px-3 py-2 font-semibold text-green-600">$${product.price.toFixed(2)}</td>
+                    <td class="border border-gray-300 px-3 py-2">
+                        <span class="flex items-center gap-1">
+                            ⭐ ${product.rating.toFixed(1)}
+                        </span>
+                    </td>
+                    <td class="border border-gray-300 px-3 py-2">${product.reviews.toLocaleString()}</td>
+                    <td class="border border-gray-300 px-3 py-2">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${product.availability === 'In Stock' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                            ${product.availability}
+                        </span>
+                    </td>
+                    <td class="border border-gray-300 px-3 py-2">
+                        <a href="${product.url}" class="text-blue-600 hover:underline text-xs" target="_blank">View Product</a>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            if (extractedData.length > 10) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="6" class="border border-gray-300 px-3 py-2 text-center text-gray-500 italic">
+                        ... and ${extractedData.length - 10} more products
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            }
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressPercent').textContent = Math.round(percent) + '%';
+        }
+
+        function updateCounters(pages, products, errors) {
+            document.getElementById('pagesScraped').textContent = pages;
+            document.getElementById('productsFound').textContent = products;
+            document.getElementById('errorsCount').textContent = errors;
+            
+            if (startTime) {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('timeElapsed').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        function addStatusMessage(message, type) {
+            const statusLog = document.getElementById('statusLog');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex items-center';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `
+                <span class="status-indicator status-${type}"></span>
+                <span class="text-xs text-gray-500 mr-2">${timestamp}</span>
+                <span>${message}</span>
+            `;
+            
+            statusLog.appendChild(messageDiv);
+            statusLog.scrollTop = statusLog.scrollHeight;
+        }
+
+        function exportData() {
+            const format = document.getElementById('outputFormat').value;
+            
+            if (extractedData.length === 0) {
+                alert('No data to export. Please run an extraction first.');
+                return;
+            }
+            
+            let content, filename, mimeType;
+            
+            switch (format) {
+                case 'csv':
+                    content = generateCSV();
+                    filename = 'extracted_products.csv';
+                    mimeType = 'text/csv';
+                    break;
+                case 'json':
+                    content = JSON.stringify(extractedData, null, 2);
+                    filename = 'extracted_products.json';
+                    mimeType = 'application/json';
+                    break;
+                case 'xlsx':
+                    alert('Excel export would require additional libraries in a real implementation.');
+                    return;
+            }
+            
+            downloadFile(content, filename, mimeType);
+        }
+
+        function generateCSV() {
+            const headers = ['Product Name', 'Price', 'Rating', 'Reviews', 'Availability', 'URL'];
+            const rows = extractedData.map(product => [
+                `"${product.name}"`,
+                product.price.toFixed(2),
+                product.rating.toFixed(1),
+                product.reviews,
+                `"${product.availability}"`,
+                `"${product.url}"`
+            ]);
+            
+            return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function previewData() {
+            if (extractedData.length === 0) {
+                alert('No data to preview. Please run an extraction first.');
+                return;
+            }
+            
+            const preview = extractedData.slice(0, 5);
+            const previewText = JSON.stringify(preview, null, 2);
+            
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg p-6 max-w-4xl max-h-96 overflow-auto">
+                    <h3 class="text-lg font-semibold mb-4">Data Preview (First 5 items)</h3>
+                    <pre class="bg-gray-100 p-4 rounded text-sm overflow-auto">${previewText}</pre>
+                    <button onclick="this.parentElement.parentElement.remove()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">Close</button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97d90829d41c4621',t:'MTc1NzYxMzI4My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
